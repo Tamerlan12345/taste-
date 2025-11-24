@@ -1,120 +1,120 @@
 const express = require('express');
 const multer = require('multer');
-const mammoth = require('mammoth');
 const bodyParser = require('body-parser');
-const path = require('path');
 const fs = require('fs');
+const path = require('path');
+const axios = require('axios'); // For downloading file from ONLYOFFICE
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
+// IMPORTANT: Specify the real IP or domain of your computer here,
+// as the Docker container must see your Node.js server.
+// "localhost" will not work inside Docker for the callback.
+const MY_IP = process.env.MY_IP || 'localhost';
+const BASE_URL = `http://${MY_IP}:${PORT}`;
+
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+app.use('/uploads', express.static('uploads')); // Open access to uploads folder
 app.set('view engine', 'ejs');
 
-// Multer Setup for File Uploads
+// Storage
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+    destination: (req, file, cb) => cb(null, 'uploads/'),
+    filename: (req, file, cb) => cb(null, file.originalname)
 });
 const upload = multer({ storage: storage });
 
-// Mock Database (In-memory)
 let documents = [
-    { id: 1, name: 'Project_Alpha_Specs.docx', status: 'Draft', author: 'Alice', date: '2023-10-25' },
-    { id: 2, name: 'Q3_Financial_Report.docx', status: 'Review', author: 'Bob', date: '2023-10-26' },
-    { id: 3, name: 'Vendor_Contract_v2.docx', status: 'Approved', author: 'Charlie', date: '2023-10-24' }
+    // Example document
+    // {
+    //     id: 1,
+    //     name: 'contract.docx',
+    //     url: `${BASE_URL}/uploads/contract.docx`,
+    //     key: 'key1' + Date.now(),
+    //     status: 'Draft'
+    // }
 ];
 
 // --- Routes ---
 
-// Dashboard
 app.get('/', (req, res) => {
     res.render('index', { documents: documents });
 });
 
-// Upload Handler
 app.post('/upload', upload.single('document'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).send('No file uploaded.');
-    }
-
-    const filePath = req.file.path;
-
-    // In a real app, we might just store the file and wait for the user to open it.
-    // Here, we redirect to the editor immediately or add it to the list.
-    // Let's add it to the list and then redirect to edit it.
+    if (!req.file) return res.status(400).send('No file.');
 
     const newDoc = {
         id: documents.length + 1,
         name: req.file.originalname,
-        status: 'Draft',
-        author: 'Current User',
-        date: new Date().toISOString().split('T')[0],
-        filePath: filePath // Store path to load later
+        url: `${BASE_URL}/uploads/${req.file.filename}`,
+        key: Date.now().toString(), // Generate new key for editing session
+        status: 'Draft'
     };
     documents.push(newDoc);
-
     res.redirect(`/edit/${newDoc.id}`);
 });
 
-// Editor View
+// Editor Page
 app.get('/edit/:id', (req, res) => {
-    const docId = parseInt(req.params.id);
-    const doc = documents.find(d => d.id === docId);
+    const doc = documents.find(d => d.id == req.params.id);
+    if (!doc) return res.status(404).send('Not found');
 
-    if (!doc) {
-        return res.status(404).send('Document not found');
-    }
+    // Pass settings for ONLYOFFICE
+    res.render('editor_onlyoffice', {
+        doc: doc,
+        documentServerUrl: 'http://localhost:8080', // Address of ONLYOFFICE Docker container
+        callbackUrl: `${BASE_URL}/track`
+    });
+});
 
-    if (doc.filePath) {
-        // Convert DOCX to HTML for the editor
-        mammoth.convertToHtml({ path: doc.filePath })
-            .then(function(result){
-                const html = result.value; // The generated HTML
-                const messages = result.messages; // Any messages, such as warnings during conversion
-                res.render('editor', { doc: doc, content: html, messages: messages });
-            })
-            .catch(function(err){
-                console.error(err);
-                res.status(500).send("Error converting document.");
+// === MOST IMPORTANT: Callback for saving ===
+// ONLYOFFICE will hit this when editing is finished
+app.post('/track', async (req, res) => {
+    const { status, url, key } = req.body;
+
+    // Status 2 or 6 means the document is ready for saving
+    if (status === 2 || status === 6) {
+        console.log(`Document changed. Downloading from: ${url}`);
+
+        try {
+            // Download the updated file from ONLYOFFICE server
+            const response = await axios({
+                method: 'get',
+                url: url,
+                responseType: 'stream'
             });
-    } else {
-        // Mock content if no file path (for pre-seeded mock data)
-        res.render('editor', { doc: doc, content: "<h1>Mock Content</h1><p>This is a placeholder for a file that doesn't exist on disk in this stateless MVP.</p>", messages: [] });
+
+            // Find file name by key (in real DB search by ID)
+            const doc = documents.find(d => d.key === key) || documents[documents.length-1];
+
+            // Determine file path
+            // Note: In a real app we would want to ensure we don't overwrite if names clash,
+            // but here we follow the simplified logic.
+            const filePath = path.join(__dirname, 'uploads', doc.name);
+
+            // Overwrite file on disk
+            const writer = fs.createWriteStream(filePath);
+            response.data.pipe(writer);
+
+            writer.on('finish', () => {
+                console.log('File updated successfully on disk!');
+                // Update key so server knows version is new next time it opens
+                doc.key = Date.now().toString();
+            });
+
+        } catch (error) {
+            console.error('Error saving file:', error);
+        }
     }
-});
 
-// Save Handler (Mock)
-app.post('/save/:id', (req, res) => {
-    const docId = parseInt(req.params.id);
-    const doc = documents.find(d => d.id === docId);
-
-    if (doc) {
-        // Here we would convert HTML back to DOCX or update the status
-        // For MVP, we just update status to "Review"
-        doc.status = 'Review';
-        // Logic to save the 'content' from the body to a file would go here
-        console.log(`Document ${docId} content updated.`);
-    }
-
-    res.redirect('/');
-});
-
-// Admin/Status Update (Mock)
-app.post('/approve/:id', (req, res) => {
-    const docId = parseInt(req.params.id);
-    const doc = documents.find(d => d.id === docId);
-    if(doc) doc.status = 'Approved';
-    res.redirect('/');
+    // Must respond to server that everything is OK
+    res.json({ error: 0 });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running at ${BASE_URL}`);
 });
