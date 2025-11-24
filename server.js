@@ -15,11 +15,9 @@ if (!fs.existsSync(uploadDir)) {
     console.log('Created uploads directory');
 }
 
-// IMPORTANT: Specify the real IP or domain of your computer here,
-// as the Docker container must see your Node.js server.
-// "localhost" will not work inside Docker for the callback.
-const MY_IP = process.env.MY_IP || 'localhost';
-const BASE_URL = `http://${MY_IP}:${PORT}`;
+// Если задана переменная PUBLIC_URL (на Railway), используем её.
+// Иначе — работаем по старому сценарию для локальной разработки.
+const BASE_URL = process.env.PUBLIC_URL || `http://${process.env.MY_IP || 'localhost'}:${PORT}`;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
