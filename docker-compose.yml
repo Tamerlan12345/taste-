@@ -8,11 +8,9 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      # Внутри Docker "localhost" не работает, используем имя сервиса "documentserver"
-      # Но для браузера нужен публичный адрес.
-      # При локальном запуске это будет localhost:8080
-      - DOCUMENT_SERVER_URL=http://localhost:8080
       - MY_IP=localhost
+      - CODESPACE_NAME
+      - GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN
     depends_on:
       - documentserver
     volumes:
@@ -21,6 +19,8 @@ services:
   # Сервер ONLYOFFICE
   documentserver:
     image: onlyoffice/documentserver
+    environment:
+      - JWT_ENABLED=false
     ports:
       - "8080:80"
     restart: always
