@@ -13,16 +13,13 @@ const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.PUBLIC_URL || `http://${process.env.MY_IP || 'localhost'}:${PORT}`;
 
 // 2. Адрес сервера ONLYOFFICE
-// Если переменная не задана, считаем, что мы запускаем локально на порту 8080
-let documentServerUrl = process.env.DOCUMENT_SERVER_URL;
-if (!documentServerUrl) {
+// Если переменная не задана, будем определять динамически
+let configuredDocumentServerUrl = process.env.DOCUMENT_SERVER_URL;
+if (!configuredDocumentServerUrl) {
     if (process.env.CODESPACE_NAME && process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
-        documentServerUrl = `https://${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
-    } else {
-        documentServerUrl = 'http://localhost:8080';
+        configuredDocumentServerUrl = `https://${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
     }
 }
-const DOCUMENT_SERVER_URL = documentServerUrl;
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
@@ -88,9 +85,15 @@ app.get('/edit/:id', (req, res) => {
     const doc = documents.find(d => d.id == req.params.id);
     if (!doc) return res.status(404).send('Not found');
 
+    // Dynamically determine Document Server URL if not configured
+    let docServerUrl = configuredDocumentServerUrl;
+    if (!docServerUrl) {
+        docServerUrl = `http://${req.hostname}:8080`;
+    }
+
     res.render('editor_onlyoffice', {
         doc: doc,
-        documentServerUrl: DOCUMENT_SERVER_URL, // Используем умную переменную
+        documentServerUrl: docServerUrl, // Используем умную переменную
         callbackUrl: `${BASE_URL}/track`
     });
 });
