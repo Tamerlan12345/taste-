@@ -8,6 +8,13 @@ const axios = require('axios'); // For downloading file from ONLYOFFICE
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+    console.log('Created uploads directory');
+}
+
 // IMPORTANT: Specify the real IP or domain of your computer here,
 // as the Docker container must see your Node.js server.
 // "localhost" will not work inside Docker for the callback.
@@ -20,10 +27,19 @@ app.use(express.static('public'));
 app.use('/uploads', express.static('uploads')); // Open access to uploads folder
 app.set('view engine', 'ejs');
 
+// Helper to fix filename encoding (latin1 to utf8)
+const fixEncoding = (str) => {
+    try {
+        return Buffer.from(str, 'latin1').toString('utf8');
+    } catch (e) {
+        return str;
+    }
+};
+
 // Storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, 'uploads/'),
-    filename: (req, file, cb) => cb(null, file.originalname)
+    filename: (req, file, cb) => cb(null, fixEncoding(file.originalname))
 });
 const upload = multer({ storage: storage });
 
@@ -49,7 +65,7 @@ app.post('/upload', upload.single('document'), (req, res) => {
 
     const newDoc = {
         id: documents.length + 1,
-        name: req.file.originalname,
+        name: req.file.filename, // Use the fixed filename from storage
         url: `${BASE_URL}/uploads/${req.file.filename}`,
         key: Date.now().toString(), // Generate new key for editing session
         status: 'Draft'
@@ -98,6 +114,9 @@ app.post('/track', async (req, res) => {
 
             // Overwrite file on disk
             const writer = fs.createWriteStream(filePath);
+            writer.on('error', (err) => {
+                console.error('Error writing file:', err);
+            });
             response.data.pipe(writer);
 
             writer.on('finish', () => {
