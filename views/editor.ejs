@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editing: <%= doc.name %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; }
+        #editor-container { height: 600px; background: white; }
+        .toolbar-custom { background: #fff; padding: 10px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="/" class="btn btn-outline-secondary">&larr; Back to Dashboard</a>
+            <h3 class="d-inline-block ms-3"><%= doc.name %></h3>
+            <span class="badge bg-secondary ms-2"><%= doc.status %></span>
+        </div>
+        <div>
+            <button class="btn btn-danger me-2">Reject / Return</button>
+            <form action="/save/<%= doc.id %>" method="POST" class="d-inline">
+                <!-- In a real app, we'd inject the editor content into a hidden field here via JS -->
+                <button type="submit" class="btn btn-primary" onclick="alert('Changes saved (Mock)! Status updated to Review.')">Save & Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <% if (messages && messages.length > 0) { %>
+        <div class="alert alert-warning">
+            <strong>Conversion Warnings:</strong>
+            <ul>
+                <% messages.forEach(msg => { %>
+                    <li><%= msg.message %></li>
+                <% }) %>
+            </ul>
+        </div>
+    <% } %>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <!-- Create the editor container -->
+            <div id="editor-container">
+                <%- content %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['link', 'image'],
+                ['clean']
+            ]
+        }
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
