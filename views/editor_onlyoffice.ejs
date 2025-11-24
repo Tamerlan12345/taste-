@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit <%= doc.name %></title>
+    <style>
+        html, body { height: 100%; margin: 0; }
+        #placeholder { height: 100%; }
+    </style>
+    <script type="text/javascript" src="<%= documentServerUrl %>/web-apps/apps/api/documents/api.js"></script>
+</head>
+<body>
+    <div id="placeholder"></div>
+
+    <script>
+        // Configuration for the editor
+        var docEditor = new DocsAPI.DocEditor("placeholder", {
+            "document": {
+                "fileType": "docx",
+                "key": "<%= doc.key %>", // Unique ID for the current file version
+                "title": "<%= doc.name %>",
+                "url": "<%= doc.url %>", // Node.js serves the file to ONLYOFFICE via this link
+            },
+            "documentType": "word",
+            "editorConfig": {
+                // Link where ONLYOFFICE will send the file after closing
+                "callbackUrl": "<%= callbackUrl %>",
+
+                "user": {
+                    "id": "user-1",
+                    "name": "Developer Partner" // Name of the editor (for track changes)
+                },
+
+                // Interface settings
+                "mode": "edit",
+                "customization": {
+                    "forcesave": true, // Allows forced saving
+                }
+            }
+        });
+    </script>
+</body>
+</html>
