@@ -3,23 +3,24 @@ const multer = require('multer');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios'); // For downloading file from ONLYOFFICE
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// === НАСТРОЙКИ АДРЕСОВ (МАГИЯ ЗДЕСЬ) ===
+// 1. Адрес вашего сайта (для Docker или Railway)
+const BASE_URL = process.env.PUBLIC_URL || `http://${process.env.MY_IP || 'localhost'}:${PORT}`;
+
+// 2. Адрес сервера ONLYOFFICE
+// Если переменная не задана, считаем, что мы запускаем локально на порту 8080
+const DOCUMENT_SERVER_URL = process.env.DOCUMENT_SERVER_URL || 'http://localhost:8080';
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
-    console.log('Created uploads directory');
 }
-
-// IMPORTANT: Specify the real IP or domain of your computer here,
-// as the Docker container must see your Node.js server.
-// "localhost" will not work inside Docker for the callback.
-const MY_IP = process.env.MY_IP || 'localhost';
-const BASE_URL = `http://${MY_IP}:${PORT}`;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -79,10 +80,9 @@ app.get('/edit/:id', (req, res) => {
     const doc = documents.find(d => d.id == req.params.id);
     if (!doc) return res.status(404).send('Not found');
 
-    // Pass settings for ONLYOFFICE
     res.render('editor_onlyoffice', {
         doc: doc,
-        documentServerUrl: process.env.DOCUMENT_SERVER_URL || 'http://localhost:8080', // Address of ONLYOFFICE Docker container
+        documentServerUrl: DOCUMENT_SERVER_URL, // Используем умную переменную
         callbackUrl: `${BASE_URL}/track`
     });
 });
