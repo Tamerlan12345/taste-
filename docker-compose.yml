@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  # Ваш Node.js сайт
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      # Внутри Docker "localhost" не работает, используем имя сервиса "documentserver"
+      # Но для браузера нужен публичный адрес.
+      # При локальном запуске это будет localhost:8080
+      - DOCUMENT_SERVER_URL=http://localhost:8080
+      - MY_IP=localhost
+    depends_on:
+      - documentserver
+    volumes:
+      - ./uploads:/app/uploads # Чтобы файлы не исчезали
+
+  # Сервер ONLYOFFICE
+  documentserver:
+    image: onlyoffice/documentserver
+    ports:
+      - "8080:80"
+    environment:
+      - JWT_ENABLED=false
+    restart: always
