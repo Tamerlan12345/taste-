@@ -14,7 +14,15 @@ const BASE_URL = process.env.PUBLIC_URL || `http://${process.env.MY_IP || 'local
 
 // 2. Адрес сервера ONLYOFFICE
 // Если переменная не задана, считаем, что мы запускаем локально на порту 8080
-const DOCUMENT_SERVER_URL = process.env.DOCUMENT_SERVER_URL || 'http://localhost:8080';
+let documentServerUrl = process.env.DOCUMENT_SERVER_URL;
+if (!documentServerUrl) {
+    if (process.env.CODESPACE_NAME && process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
+        documentServerUrl = `https://${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
+    } else {
+        documentServerUrl = 'http://localhost:8080';
+    }
+}
+const DOCUMENT_SERVER_URL = documentServerUrl;
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
