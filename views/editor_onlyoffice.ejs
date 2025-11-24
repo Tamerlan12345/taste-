@@ -13,9 +13,12 @@
     <div id="placeholder"></div>
 
     <script>
-        // Configuration for the editor
-        var docEditor = new DocsAPI.DocEditor("placeholder", {
-            "document": {
+        if (typeof DocsAPI === 'undefined') {
+            document.getElementById('placeholder').innerHTML = '<div style="padding: 20px; color: red;"><h1>Error: DocsAPI is not defined.</h1><p>The browser could not load the ONLYOFFICE API script from <b><%= documentServerUrl %></b>.</p><p>Possible reasons:</p><ul><li>The Docker container <code>documentserver</code> is not running.</li><li>The URL is incorrect or not accessible from your browser.</li><li>Mixed content block (if using HTTPS).</li></ul></div>';
+        } else {
+            // Configuration for the editor
+            var docEditor = new DocsAPI.DocEditor("placeholder", {
+                "document": {
                 "fileType": "docx",
                 "key": "<%= doc.key %>", // Unique ID for the current file version
                 "title": "<%= doc.name %>",
@@ -38,6 +41,7 @@
                 }
             }
         });
+        }
     </script>
 </body>
 </html>
