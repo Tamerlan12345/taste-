@@ -82,7 +82,7 @@ app.get('/edit/:id', (req, res) => {
     // Pass settings for ONLYOFFICE
     res.render('editor_onlyoffice', {
         doc: doc,
-        documentServerUrl: 'http://localhost:8080', // Address of ONLYOFFICE Docker container
+        documentServerUrl: process.env.DOCUMENT_SERVER_URL || 'http://localhost:8080', // Address of ONLYOFFICE Docker container
         callbackUrl: `${BASE_URL}/track`
     });
 });
