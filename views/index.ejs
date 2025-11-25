@@ -1,112 +1,193 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CIC DocFlow - MVP</title>
+    <title>CIC DocFlow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f9fa; }
-        .sidebar { height: 100vh; background: #343a40; color: white; padding-top: 20px; }
-        .sidebar a { color: #adb5bd; text-decoration: none; padding: 10px 20px; display: block; }
-        .sidebar a:hover { color: white; background: #495057; }
-        .card-status-Draft { border-left: 5px solid #ffc107; }
-        .card-status-Review { border-left: 5px solid #17a2b8; }
-        .card-status-Approved { border-left: 5px solid #28a745; }
+        :root {
+            --primary-color: #0d6efd;
+            --sidebar-bg: #2c3e50;
+            --sidebar-link-color: #ecf0f1;
+            --sidebar-link-hover: #34495e;
+            --body-bg: #ecf0f1;
+        }
+        body { background-color: var(--body-bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .sidebar {
+            height: 100vh;
+            background: var(--sidebar-bg);
+            color: white;
+            padding-top: 15px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 250px;
+        }
+        .sidebar .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 15px 20px 15px;
+            border-bottom: 1px solid #34495e;
+            margin-bottom: 20px;
+        }
+        .sidebar .logo {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .sidebar h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .sidebar a {
+            color: var(--sidebar-link-color);
+            text-decoration: none;
+            padding: 12px 20px;
+            display: block;
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            color: white;
+            background: var(--sidebar-link-hover);
+            border-left: 3px solid var(--primary-color);
+            padding-left: 17px;
+        }
+        .main-content {
+            margin-left: 250px; /* Same as sidebar width */
+            padding: 30px;
+        }
+        .kpi-card .card-body {
+            display: flex;
+            align-items: center;
+        }
+        .kpi-card .icon {
+            font-size: 3rem;
+            margin-right: 20px;
+            opacity: 0.7;
+        }
+        .kpi-card .card-text {
+            font-size: 2.5rem;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+        }
+        .table-hover tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+        .badge {
+            font-size: 0.9em;
+            padding: 0.5em 0.8em;
+        }
     </style>
 </head>
 <body>
+<div class="d-flex">
+    <!-- Sidebar -->
+    <div class="sidebar d-none d-md-block">
+        <div class="logo-container">
+            <img src="/logo.png" alt="CIC DocFlow Logo" class="logo">
+            <h3 class="text-white">CIC DocFlow</h3>
+        </div>
+        <a href="/" class="active"><i class="bi bi-speedometer2 me-2"></i>Панель управления</a>
+        <a href="#"><i class="bi bi-list-task me-2"></i>Мои задачи</a>
+        <a href="#"><i class="bi bi-bar-chart-line me-2"></i>Отчеты (KPI)</a>
+        <a href="#"><i class="bi bi-gear me-2"></i>Настройки</a>
+    </div>
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-2 sidebar d-none d-md-block">
-            <h3 class="text-center mb-4">CIC DocFlow</h3>
-            <a href="/">Dashboard</a>
-            <a href="#">My Tasks</a>
-            <a href="#">Reports (KPI)</a>
-            <a href="#">Settings</a>
+    <!-- Main Content -->
+    <div class="main-content flex-grow-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Панель управления документами</h2>
+            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-plus-circle me-2"></i>Новый документ
+            </button>
         </div>
 
-        <!-- Main Content -->
-        <div class="col-md-10 p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Document Dashboard</h2>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                    + New Document
-                </button>
-            </div>
-
-            <!-- KPI Cards -->
-            <div class="row mb-4">
-                <div class="col-md-4">
-                    <div class="card text-white bg-warning mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Pending Review</h5>
-                            <p class="card-text display-4"><%= documents.filter(d => d.status === 'Review').length %></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card text-white bg-success mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Approved</h5>
-                            <p class="card-text display-4"><%= documents.filter(d => d.status === 'Approved').length %></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card text-white bg-info mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Avg Approval Time</h5>
-                            <p class="card-text display-4">2.3 Days</p>
+        <!-- KPI Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card kpi-card shadow-sm">
+                    <div class="card-body">
+                        <i class="bi bi-hourglass-split icon text-warning"></i>
+                        <div>
+                            <h5 class="card-title text-muted">На рассмотрении</h5>
+                            <p class="card-text"><%= documents.filter(d => d.status === 'Review').length %></p>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="col-md-4">
+                <div class="card kpi-card shadow-sm">
+                    <div class="card-body">
+                        <i class="bi bi-check2-circle icon text-success"></i>
+                        <div>
+                            <h5 class="card-title text-muted">Согласовано</h5>
+                            <p class="card-text"><%= documents.filter(d => d.status === 'Approved').length %></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card kpi-card shadow-sm">
+                    <div class="card-body">
+                        <i class="bi bi-clock-history icon text-info"></i>
+                        <div>
+                            <h5 class="card-title text-muted">Среднее время согласования</h5>
+                            <p class="card-text">2.3 дня</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <!-- Documents Table -->
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">Recent Documents</h5>
-                    <table class="table table-hover">
-                        <thead>
+
+        <!-- Documents Table -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Последние документы</h5>
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название документа</th>
+                            <th>Автор</th>
+                            <th>Дата</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% documents.forEach(doc => { %>
                             <tr>
-                                <th>ID</th>
-                                <th>Document Name</th>
-                                <th>Author</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <td><%= doc.id %></td>
+                                <td><i class="bi bi-file-earmark-word me-2"></i><%= doc.name %></td>
+                                <td><%= doc.author %></td>
+                                <td><%= doc.date %></td>
+                                <td>
+                                    <span class="badge
+                                        <%= doc.status === 'Approved' ? 'bg-success' :
+                                           (doc.status === 'Review' ? 'bg-info' : 'bg-warning text-dark') %>">
+                                        <%= doc.status %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="/edit/<%= doc.id %>" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square me-1"></i>Открыть / Редактировать</a>
+                                    <% if (doc.status !== 'Approved') { %>
+                                        <form action="/approve/<%= doc.id %>" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check-lg me-1"></i>Согласовать</button>
+                                        </form>
+                                    <% } %>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <% documents.forEach(doc => { %>
-                                <tr>
-                                    <td><%= doc.id %></td>
-                                    <td><%= doc.name %></td>
-                                    <td><%= doc.author %></td>
-                                    <td><%= doc.date %></td>
-                                    <td>
-                                        <span class="badge
-                                            <%= doc.status === 'Approved' ? 'bg-success' :
-                                               (doc.status === 'Review' ? 'bg-info' : 'bg-warning') %>">
-                                            <%= doc.status %>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <a href="/edit/<%= doc.id %>" class="btn btn-sm btn-outline-primary">Open / Edit</a>
-                                        <% if (doc.status !== 'Approved') { %>
-                                            <form action="/approve/<%= doc.id %>" method="POST" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-outline-success">Approve</button>
-                                            </form>
-                                        <% } %>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                </div>
+                        <% }); %>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -114,22 +195,23 @@
 
 <!-- Upload Modal -->
 <div class="modal fade" id="uploadModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Upload Document</h5>
+                <h5 class="modal-title">Загрузить документ</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/upload" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
+                    <p class="text-muted">Выберите файл в формате .docx для загрузки в систему.</p>
                     <div class="mb-3">
-                        <label for="document" class="form-label">Select DOCX File</label>
-                        <input type="file" class="form-control" name="document" accept=".docx" required>
+                        <label for="document" class="form-label">Выберите файл .docx</label>
+                        <input type="file" class="form-control" name="document" id="document" accept=".docx" required>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Upload & Edit</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-cloud-upload me-2"></i>Загрузить и открыть</button>
                 </div>
             </form>
         </div>
