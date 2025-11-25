@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  # Ваш Node.js сайт
+  # Node.js application service
   app:
     build: .
     ports:
@@ -9,8 +9,11 @@ services:
     environment:
       - PORT=3000
       - MY_IP=localhost
-      - CODESPACE_NAME
-      - GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN
+      # Pass special environment variables for dynamic URL construction in remote environments
+      - CODESPACE_NAME=${CODESPACE_NAME}
+      - GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}
+      # Explicitly define the document server URL for docker-compose environment
+      - DOCUMENT_SERVER_URL=http://documentserver
     depends_on:
       - documentserver
     volumes:

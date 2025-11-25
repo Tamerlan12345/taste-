@@ -8,18 +8,29 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// === НАСТРОЙКИ АДРЕСОВ (МАГИЯ ЗДЕСЬ) ===
-// 1. Адрес вашего сайта (для Docker или Railway)
+// Determine the base URL for this application
+// Railway provides a PUBLIC_URL, otherwise construct from host/port
 const BASE_URL = process.env.PUBLIC_URL || `http://${process.env.MY_IP || 'localhost'}:${PORT}`;
 
-// 2. Адрес сервера ONLYOFFICE
-// Если переменная не задана, будем определять динамически
-let configuredDocumentServerUrl = process.env.DOCUMENT_SERVER_URL;
-if (!configuredDocumentServerUrl) {
+// Determine the URL for the ONLYOFFICE Document Server
+// It can be set via environment variable, or derived for common environments
+let DOCUMENT_SERVER_URL = process.env.DOCUMENT_SERVER_URL;
+if (!DOCUMENT_SERVER_URL) {
     if (process.env.CODESPACE_NAME && process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
-        configuredDocumentServerUrl = `https://${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
+        // GitHub Codespaces environment
+        DOCUMENT_SERVER_URL = `https://${process.env.CODESPACE_NAME}-8080.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
+    } else if (process.env.PUBLIC_URL) {
+        // Railway deployment or similar PaaS
+        // Assume document server is accessible at port 8080 on the same host
+        const url = new URL(BASE_URL);
+        url.port = '8080';
+        DOCUMENT_SERVER_URL = url.toString();
+    } else {
+        // Local docker-compose setup
+        DOCUMENT_SERVER_URL = `http://localhost:8080`;
     }
 }
+
 
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
@@ -50,14 +61,15 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 let documents = [
-    // Example document
-    // {
-    //     id: 1,
-    //     name: 'contract.docx',
-    //     url: `${BASE_URL}/uploads/contract.docx`,
-    //     key: 'key1' + Date.now(),
-    //     status: 'Draft'
-    // }
+    {
+        id: 1,
+        name: 'Пример договора.docx',
+        author: 'Иванов И.И.',
+        date: '2023-10-26',
+        url: `${BASE_URL}/uploads/example.docx`,
+        key: 'examplekey' + Date.now(),
+        status: 'Review'
+    }
 ];
 
 // --- Routes ---
@@ -83,17 +95,14 @@ app.post('/upload', upload.single('document'), (req, res) => {
 // Editor Page
 app.get('/edit/:id', (req, res) => {
     const doc = documents.find(d => d.id == req.params.id);
-    if (!doc) return res.status(404).send('Not found');
+    if (!doc) return res.status(404).send('Document not found');
 
-    // Dynamically determine Document Server URL if not configured
-    let docServerUrl = configuredDocumentServerUrl;
-    if (!docServerUrl) {
-        docServerUrl = `http://${req.hostname}:8080`;
-    }
+    // Regenerate key for each editing session to treat it as a new version
+    doc.key = Date.now().toString();
 
     res.render('editor_onlyoffice', {
         doc: doc,
-        documentServerUrl: docServerUrl, // Используем умную переменную
+        documentServerUrl: DOCUMENT_SERVER_URL,
         callbackUrl: `${BASE_URL}/track`
     });
 });
